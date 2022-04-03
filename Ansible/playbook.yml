@@ -1,0 +1,71 @@
+---
+ - hosts: all
+   become: yes
+   remote_user: wt-user
+   vars_files:
+     - vars.yml
+
+   tasks:
+   - name: Clone from git repo
+     git:
+       repo: "https://github.com/orbashan94/bootcamp-app.git"
+       dest: '{{ deploy_directory }}'
+       force: yes
+
+   - name: Update nodejs package
+     shell: curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+
+   - name: Install nodejs
+     apt:
+       name: nodejs
+       state: present
+
+   - name: Npm initialization
+     shell: npm init -y
+     args:
+       chdir: '{{ deploy_directory }}/'
+
+   - name: Install node dependencies
+     shell: npm install
+     args:
+       chdir: '{{ deploy_directory }}/'   
+
+   - name: Create environment variables file
+     copy:
+       dest: "{{ deploy_directory }}/.env"
+       content: |
+         # Host configuration
+         PORT=8080
+         HOST=0.0.0.0
+         
+         HOST_URL={{ host_url }}:8080
+         COOKIE_ENCRYPT_PWD=superAwesomePasswordStringThatIsAtLeast32CharactersLong!
+         NODE_ENV=development
+         
+         PGHOST={{ ph_host }}
+         PGUSERNAME={{ pg_username }}
+         PGDATABASE={{ pg_database }}
+         PGPASSWORD={{ pg_password }}
+         PGPORT=5432
+
+         OKTA_ORG_URL=https://{{ okta_org_url }}
+         OKTA_CLIENT_ID={{ okta_client_id }}
+         OKTA_CLIENT_SECRET={{ okta_client_secret }}
+
+   - name: init db
+     shell: npm run initdb
+     run_once: true
+     args:
+       chdir: '{{ deploy_directory }}/'
+
+   - name: Install pm2
+     shell: npm install pm2 -g
+
+   - name: Clear pm2
+     shell: pm2 delete all
+     ignore_errors: yes
+
+   - name: Run app
+     shell: pm2 start npm -- run dev && pm2 save && pm2 startup
+     args:
+       chdir: '{{ deploy_directory }}/'
