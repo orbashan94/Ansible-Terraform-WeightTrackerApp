@@ -39,7 +39,7 @@ $ ssh-keygen
 ```
 $ ssh-copy-id -i username@<host_ip>
 Connect VM via SSH and run: $ sudo nano /etc/ssh/sshd_config
-Uncomment row: `pubkeyAuthentication yes`
+Uncomment row: `PubkeyAuthentication yes`
 ```
 
 ### Back to controller VM and Add app servers Ip's to hosts file:
